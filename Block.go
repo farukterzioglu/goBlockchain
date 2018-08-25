@@ -2,6 +2,8 @@ package goBlockchain
 
 import (
 	"time"
+	"bytes"
+	"encoding/gob"
 )
 
 type Block struct {
@@ -26,5 +28,27 @@ func NewBlock(data string, prevBlockHash []byte) (block *Block) {
 	block.Hash = hash[:]
 	block.Nonce = nonce
 
+	return
+}
+
+func (block *Block) Serialize() (resultBytes []byte, err error){
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
+
+	err = encoder.Encode(block)
+	if err != nil {
+		return
+	}
+
+	resultBytes = result.Bytes()
+	return
+}
+
+func DeserializeBlock(d []byte) (block *Block, err error) {
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+	err = decoder.Decode(&block)
+	if err != nil {
+		return
+	}
 	return
 }

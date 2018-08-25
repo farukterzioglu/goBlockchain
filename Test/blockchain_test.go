@@ -14,8 +14,16 @@ func TestGenesisBlock(t *testing.T){
 }
 
 func TestNewBlockChain(t *testing.T){
-	newBlockChain := goBlockchain.NewBlockchain()
+	newBlockChain, err := goBlockchain.NewBlockchain()
+	if err != nil {
+		t.Errorf("Couldn't create new blockchain")
+	}
 	if newBlockChain == nil {
 		t.Errorf("Couldn't create new blockchain")
 	}
 }
+
+//TODO : Test adding block
+
+//TODO : Test Generating hash with PoW
+

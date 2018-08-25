@@ -12,7 +12,9 @@ var (
 	maxNonce = math.MaxInt64
 )
 
-const targetBits = 24
+//4 -> 05c3224b...
+//8 -> 00e718c5...
+const targetBits = 4
 
 type ProofOfWork struct {
 	block *Block
