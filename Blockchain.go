@@ -2,6 +2,7 @@ package goBlockchain
 
 import (
 	"github.com/boltdb/bolt"
+	_ "fmt"
 )
 
 const dbFile = "blockchain.db"
@@ -44,11 +45,12 @@ func (bc *Blockchain) AddBlock(data string) error {
 
 	return nil
 }
-
+func (bc *Blockchain) Dispose() {
+	bc.db.Close()
+}
 func NewGenesisBlock() *Block{
 	return NewBlock("Genesis Block", []byte{})
 }
-
 func NewBlockchain() (*Blockchain, error) {
 	var tip []byte
 
@@ -83,4 +85,43 @@ func NewBlockchain() (*Blockchain, error) {
 	bc := Blockchain{tip, db}
 
 	return &bc, nil
+}
+
+//BlockchainIterator
+type BlockchainIterator struct {
+	currentHash []byte
+	db          *bolt.DB
+}
+func (bc *Blockchain) Iterator() *BlockchainIterator {
+	return &BlockchainIterator{bc.tip, bc.db}
+}
+func (i *BlockchainIterator) Next() *Block {
+	var block *Block
+
+	err := i.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		encodedBlock := b.Get(i.currentHash)
+		if encodedBlock == nil {
+			return nil
+		}
+		blockDes, errAlt := DeserializeBlock(encodedBlock)
+		if errAlt != nil {
+			return errAlt
+		}
+		block = blockDes
+		return nil
+	})
+
+	if err != nil {
+		//TODO : Handle error
+		return nil
+	}
+
+	if block == nil {
+		return nil
+	}
+
+	i.currentHash = block.PrevBlockHash
+
+	return block
 }
