@@ -1,9 +1,6 @@
 package goBlockchain
 
 import (
-	"strconv"
-	"bytes"
-	"crypto/sha256"
 	"time"
 )
 
@@ -12,15 +9,7 @@ type Block struct {
 	Data []byte
 	PrevBlockHash []byte
 	Hash []byte
-}
-
-func (b *Block) SetHash(){
-	timeStamp := []byte(strconv.FormatInt(b.Timestamp, 10))
-	headers := bytes.Join([][]byte{
-		b.PrevBlockHash, b.Data, timeStamp,
-	}, []byte{})
-	hash := sha256.Sum256(headers)
-	b.Hash = hash[:]
+	Nonce int
 }
 
 func NewBlock(data string, prevBlockHash []byte) (block *Block) {
@@ -28,7 +17,14 @@ func NewBlock(data string, prevBlockHash []byte) (block *Block) {
 		time.Now().Unix(),
 		[]byte(data),
 		prevBlockHash, []byte{},
+		0,
 	}
-	block.SetHash()
+
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+
+	block.Hash = hash[:]
+	block.Nonce = nonce
+
 	return
 }
