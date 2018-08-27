@@ -1,4 +1,4 @@
-package Test
+package test
 
 import "testing"
 import (
@@ -34,15 +34,18 @@ func TestIterator(t *testing.T){
 	iter := newBlockChain.Iterator()
 
 	//Act
-	var i int
-	var next = iter.Next()
-	for  i = 0; next != nil; i++{
+	var i = 0
+	for  {
+		next := iter.Next()
 		if len(next.Hash) <= 0{
 			t.Errorf("Length of hash is not valid")
 		}
 		fmt.Printf("%d. Lenght of hash : %d\n",i ,len(next.Hash))
 
-		next = iter.Next()
+		i++
+		if len(next.PrevBlockHash) == 0 {
+			break
+		}
 	}
 
 	//Assert

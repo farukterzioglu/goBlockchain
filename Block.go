@@ -4,6 +4,7 @@ import (
 	"time"
 	"bytes"
 	"encoding/gob"
+	"fmt"
 )
 
 type Block struct {
@@ -37,6 +38,7 @@ func (block *Block) Serialize() (resultBytes []byte, err error){
 
 	err = encoder.Encode(block)
 	if err != nil {
+		err = fmt.Errorf("'Serialize' failed: %v", err)
 		return
 	}
 
@@ -48,6 +50,7 @@ func DeserializeBlock(d []byte) (block *Block, err error) {
 	decoder := gob.NewDecoder(bytes.NewReader(d))
 	err = decoder.Decode(&block)
 	if err != nil {
+		err = fmt.Errorf("'DeserializeBlock' failed: %v", err)
 		return
 	}
 	return
