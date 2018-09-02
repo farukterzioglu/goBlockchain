@@ -1,11 +1,13 @@
 package goBlockchain
 
 import (
-	"fmt"
 	"bytes"
-	"encoding/gob"
-	"log"
 	"crypto/sha256"
+	"encoding/gob"
+	"encoding/hex"
+	"fmt"
+	"github.com/pkg/errors"
+	"log"
 )
 
 const subsidy = 10
@@ -66,3 +68,39 @@ func NewCoinbaseTX(to, data string) *Transaction {
 	return &tx
 }
 
+func NewTransaction(from, to string, amount int, bc *Blockchain) (*Transaction, error){
+	var inputs []TXInput
+	var outputs []TXOutput
+
+	acc, validOutputs, err := bc.FindSpendableOutputs(from, amount)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error while finding spendable outputs")
+	}
+
+	if acc< amount{
+		log.Panic("Not enough balance ")
+	}
+
+	for txid, outs := range validOutputs{
+		txId, err := hex.DecodeString(txid)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "DecodeString failed.")
+		}
+
+		for _, out := range outs{
+			input := TXInput{Txid:txId, Vout:out, ScriptSig:from}
+			inputs = append(inputs, input)
+		}
+	}
+
+	outputs = append(outputs, TXOutput{Value:amount, ScriptPubKey:to})
+	if acc > amount {
+		outputs = append(outputs, TXOutput{Value: acc -amount, ScriptPubKey:from})
+	}
+
+	tx := Transaction{Vin:inputs, Vout:outputs,ID:nil}
+	tx.SetID()
+
+	return &tx, nil
+}

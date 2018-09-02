@@ -3,6 +3,7 @@ package goBlockchain
 import (
 	"encoding/hex"
 	"github.com/boltdb/bolt"
+	"github.com/pkg/errors"
 	"log"
 )
 
@@ -57,7 +58,7 @@ func NewBlockchain(address string) (*Blockchain, error) {
 	return &bc, nil
 }
 
-func (bc *Blockchain) FindUnspentTransactions(address string) []Transaction{
+func (bc *Blockchain) FindUnspentTransactions(address string) ([]Transaction, error){
 	var unspentTXOs []Transaction
 	spentTXOs := make(map[string][]int)
 
@@ -109,11 +110,11 @@ func (bc *Blockchain) FindUnspentTransactions(address string) []Transaction{
 		}
 	}
 
-	return unspentTXOs
+	return unspentTXOs, nil
 }
 func (bc *Blockchain) FindUTXO(address string) []TXOutput {
 	var UTXOs []TXOutput
-	unsTransaactions := bc.FindUnspentTransactions(address)
+	unsTransaactions, _ := bc.FindUnspentTransactions(address)
 
 	for _, tx := range unsTransaactions{
 		for _, output := range tx.Vout{
@@ -163,6 +164,34 @@ func (bc *Blockchain) Dispose() {
 }
 func (bc *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{bc.tip, bc.db}
+}
+func (bc *Blockchain) FindSpendableOutputs(from string, amount int) (int, map[string][]int , error){
+	unSpentOutputs := make(map[string][]int)
+	var totalAmount = 0
+
+	UTXs, err := bc.FindUnspentTransactions(from)
+	if err != nil {
+		return 0, nil, errors.Wrap(err,"FindUnspentTransactions failed.")
+	}
+
+	func (){
+		for _, tx := range UTXs {
+			txid := hex.EncodeToString(tx.ID)
+
+			for ind, output := range tx.Vout{
+				if output.CanBeUnlockedWith(from){
+					unSpentOutputs[txid] = append(unSpentOutputs[txid], ind)
+					totalAmount += output.Value
+
+					if output.Value >= amount {
+						return
+					}
+				}
+			}
+		}
+	}()
+
+	return totalAmount, unSpentOutputs, nil
 }
 
 type BlockchainIterator struct {
