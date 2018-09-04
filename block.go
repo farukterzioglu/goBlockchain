@@ -1,6 +1,7 @@
 package goBlockchain
 
 import (
+	"log"
 	"time"
 	"bytes"
 	"encoding/gob"
@@ -33,25 +34,24 @@ func NewBlock(transactions []*Transaction, prevBlockHash []byte) (block *Block) 
 	return
 }
 
-func (block *Block) Serialize() (resultBytes []byte, err error){
+// Serialize serializes the block
+func (block *Block) Serialize() []byte {
 	var result bytes.Buffer
 	encoder := gob.NewEncoder(&result)
 
-	err = encoder.Encode(block)
+	err := encoder.Encode(block)
 	if err != nil {
-		err = fmt.Errorf("'Serialize' failed: %v", err)
-		return
+		log.Panic(err)
 	}
 
-	resultBytes = result.Bytes()
-	return
+	return result.Bytes()
 }
 func (block *Block) HashTransactions() []byte{
 	var txHashes [][]byte
 	var txHash [32]byte
 
 	for _, tx := range block.Transactions {
-		txHashes = append(txHashes, tx.ID)
+		txHashes = append(txHashes, tx.Hash())
 	}
 	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
 

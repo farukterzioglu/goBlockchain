@@ -30,8 +30,18 @@ func TestSendMultipleTransaction(t *testing.T){
 	cli.Send("acc2", "acc3", 2)
 	cli.Send("acc1", "acc3", 4)
 
-	fromBalance := cli.GetBalance("acc3")
-	if fromBalance != 6 {
+	balance := cli.GetBalance("acc3")
+	if balance != 6 {
+		t.Errorf("Balance isn't correct")
+	}
+
+	balance = cli.GetBalance("acc1")
+	if balance != 1 {
+		t.Errorf("Balance isn't correct")
+	}
+
+	balance = cli.GetBalance("acc2")
+	if balance != 3 {
 		t.Errorf("Balance isn't correct")
 	}
 }
