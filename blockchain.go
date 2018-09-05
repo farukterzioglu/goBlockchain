@@ -132,18 +132,48 @@ func (bc *Blockchain) FindUnspentTransactions(pubKeyHash []byte) ([]Transaction,
 
 	return unspentTXOs, nil
 }
-func (bc *Blockchain) FindUTXO(pubKeyHash []byte) []TXOutput {
-	var UTXOs []TXOutput
-	unsTransaactions, _ := bc.FindUnspentTransactions(pubKeyHash)
+// FindUTXO finds all unspent transaction outputs and returns transactions with spent outputs removed
+func (bc *Blockchain) FindUTXO() map[string]TXOutputs {
+	UTXO := make(map[string]TXOutputs)
+	spentTXOs := make(map[string][]int)
+	bci := bc.Iterator()
 
-	for _, tx := range unsTransaactions{
-		for _, output := range tx.Vout{
-			if output.IsLockedWithKey(pubKeyHash) {
-				UTXOs = append(UTXOs, output)
+	for {
+		block := bci.Next()
+
+		for _, tx := range block.Transactions {
+			txID := hex.EncodeToString(tx.ID)
+
+		Outputs:
+			for outIdx, out := range tx.Vout {
+				// Was the output spent?
+				if spentTXOs[txID] != nil {
+					for _, spentOutIdx := range spentTXOs[txID] {
+						if spentOutIdx == outIdx {
+							continue Outputs
+						}
+					}
+				}
+
+				outs := UTXO[txID]
+				outs.Outputs = append(outs.Outputs, out)
+				UTXO[txID] = outs
+			}
+
+			if tx.IsCoinbase() == false {
+				for _, in := range tx.Vin {
+					inTxID := hex.EncodeToString(in.Txid)
+					spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Vout)
+				}
 			}
 		}
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
 	}
-	return UTXOs
+
+	return UTXO
 }
 func (bc *Blockchain) MineBlock(transactions []*Transaction) {
 	var lastHash []byte
@@ -200,7 +230,6 @@ func (bc *Blockchain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey)
 
 	tx.Sign(privKey, prevTXs)
 }
-
 // VerifyTransaction verifies transaction input signatures
 func (bc *Blockchain) VerifyTransaction(tx *Transaction) bool {
 	if tx == nil {
@@ -219,47 +248,18 @@ func (bc *Blockchain) VerifyTransaction(tx *Transaction) bool {
 
 	return tx.Verify(prevTXs)
 }
-
-func dbExists() bool {
-	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
-		return false
-	}
-
-	return true
-}
 func (bc *Blockchain) Dispose() {
 	bc.db.Close()
 }
 func (bc *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{bc.tip, bc.db}
 }
-func (bc *Blockchain) FindSpendableOutputs(pubKeyHash []byte,  amount int) (int, map[string][]int , error){
-	unSpentOutputs := make(map[string][]int)
-	var totalAmount = 0
-
-	UTXs, err := bc.FindUnspentTransactions(pubKeyHash)
-	if err != nil {
-		return 0, nil, errors.Wrap(err,"FindUnspentTransactions failed.")
+func dbExists() bool {
+	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
+		return false
 	}
 
-	func (){
-		for _, tx := range UTXs {
-			txid := hex.EncodeToString(tx.ID)
-
-			for ind, output := range tx.Vout{
-				if output.IsLockedWithKey(pubKeyHash) && totalAmount < amount{
-					unSpentOutputs[txid] = append(unSpentOutputs[txid], ind)
-					totalAmount += output.Value
-
-					if output.Value >= amount {
-						return
-					}
-				}
-			}
-		}
-	}()
-
-	return totalAmount, unSpentOutputs, nil
+	return true
 }
 
 type BlockchainIterator struct {

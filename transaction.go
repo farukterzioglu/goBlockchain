@@ -141,38 +141,6 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transac
 	}
 }
 
-//TXInput
-type TXInput struct {
-	Txid      []byte
-	Vout      int
-	Signature []byte
-	PubKey    []byte
-}
-func (in *TXInput) UsesKey(pubKeyHash []byte) bool {
-	lockingHash := HashPubKey(in.PubKey)
-
-	return bytes.Compare(lockingHash, pubKeyHash) == 0
-}
-
-//TXOutput
-type TXOutput struct {
-	Value      int
-	PubKeyHash []byte
-}
-func NewTXOutput(value int, address string) *TXOutput {
-	txo := &TXOutput{value, nil}
-	txo.Lock([]byte(address))
-	return txo
-}
-func (out *TXOutput) Lock(address []byte) {
-	pubKeyHash := Base58Decode(address)
-	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
-	out.PubKeyHash = pubKeyHash
-}
-func (out *TXOutput) IsLockedWithKey(pubKeyHash []byte) bool {
-	return bytes.Compare(out.PubKeyHash, pubKeyHash) == 0
-}
-
 func NewCoinbaseTX(to, data string) *Transaction {
 	if data == "" {
 		data = fmt.Sprintf("Reward to '%s'", to)
