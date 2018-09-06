@@ -22,7 +22,7 @@ type Blockchain struct{
 
 // CreateBlockchain creates a new blockchain DB
 func CreateBlockchain(address string) (*Blockchain ,error) {
-	if dbExists() {
+	if DbExists() {
 		fmt.Println("Blockchain already exists.")
 		os.Exit(1)
 	}
@@ -68,7 +68,7 @@ func CreateBlockchain(address string) (*Blockchain ,error) {
 }
 // NewBlockchain creates a new Blockchain with genesis Block
 func NewBlockchain() (*Blockchain, error) {
-	if dbExists() == false {
+	if DbExists() == false {
 		fmt.Println("No existing blockchain found. Create one first.")
 		os.Exit(1)
 	}
@@ -294,7 +294,7 @@ func (bc *Blockchain) Dispose() {
 func (bc *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{bc.tip, bc.db}
 }
-func dbExists() bool {
+func DbExists() bool {
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		return false
 	}

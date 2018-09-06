@@ -90,7 +90,7 @@ func (cli *CLI) Run() {
 	}
 
 	if createWalletCmd.Parsed() {
-		cli.createWallet()
+		cli.CreateWallet()
 	}
 
 	if createBlockchainCmd.Parsed() {
@@ -125,7 +125,7 @@ func (cli *CLI) CreateBlockchain(address string) {
 	bc, err := goBlockchain.CreateBlockchain(address)
 	defer bc.Dispose()
 
-	UTXOSet := goBlockchain.UTXOSet{bc}
+	UTXOSet := goBlockchain.UTXOSet{Blockchain: bc}
 	UTXOSet.Reindex()
 
 	if err != nil {
@@ -204,7 +204,7 @@ func (cli *CLI) Send(from, to string, amount int) (err error){
 		errors.Wrap(err, "NewBlockchain failed")
 	}
 
-	UTXOSet := goBlockchain.UTXOSet{bc}
+	UTXOSet := goBlockchain.UTXOSet{Blockchain: bc}
 	defer bc.Dispose()
 
 	tx := goBlockchain.NewUTXOTransaction(from, to, amount, &UTXOSet)
@@ -217,9 +217,10 @@ func (cli *CLI) Send(from, to string, amount int) (err error){
 
 	return nil
 }
-func (cli *CLI) createWallet() {
+func (cli *CLI) CreateWallet() string{
 	wallets, _ := goBlockchain.NewWallets()
 	address := wallets.CreateWallet()
 	wallets.SaveToFile()
 	fmt.Printf("Your new address: %s\n", address)
+	return address
 }

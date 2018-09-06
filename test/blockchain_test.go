@@ -1,5 +1,5 @@
 package test
-
+/*
 import "testing"
 import (
 	"github.com/farukterzioglu/goBlockchain"
@@ -56,3 +56,4 @@ func TestIterator(t *testing.T){
 //TODO : Test adding block
 
 //TODO : Test Generating hash with PoW
+*/
