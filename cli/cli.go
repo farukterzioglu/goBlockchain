@@ -122,15 +122,19 @@ func (cli *CLI) CreateBlockchain(address string) {
 		log.Panic("ERROR: Address is not valid")
 	}
 
-	bc, err := goBlockchain.NewBlockchain(address)
-	bc.Dispose()
+	bc, err := goBlockchain.CreateBlockchain(address)
+	defer bc.Dispose()
+
+	UTXOSet := goBlockchain.UTXOSet{bc}
+	UTXOSet.Reindex()
+
 	if err != nil {
-		panic(err)
+		goBlockchain.PanicErr(err, "UTXOSet.ReIndex failed.")
 	}
 	fmt.Println("Done!")
 }
 func (cli *CLI) printChain() {
-	bc, err := goBlockchain.NewBlockchain("")
+	bc, err := goBlockchain.NewBlockchain()
 	defer bc.Dispose()
 
 	if err != nil {
@@ -172,18 +176,14 @@ func (cli *CLI) GetBalance(address string) int {
 	if !goBlockchain.ValidateAddress(address) {
 		log.Panic("ERROR: Address is not valid")
 	}
-
-	bc, err := goBlockchain.NewBlockchain(address)
+	bc, _ := goBlockchain.NewBlockchain()
+	UTXOSet := goBlockchain.UTXOSet{bc}
 	defer bc.Dispose()
-
-	if err != nil {
-		panic(errors.Wrap(err, "Couldn't create blockchain"))
-	}
 
 	balance := 0
 	pubKeyHash := goBlockchain.Base58Decode([]byte(address))
 	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
-	UTXOs := bc.FindUTXO(pubKeyHash)
+	UTXOs := UTXOSet.FindUTXO(pubKeyHash)
 
 	for _, out := range UTXOs {
 		balance += out.Value
@@ -199,24 +199,23 @@ func (cli *CLI) Send(from, to string, amount int) (err error){
 		log.Panic("ERROR: Recipient address is not valid")
 	}
 
-	bc, err := goBlockchain.NewBlockchain(from)
+	bc, err := goBlockchain.NewBlockchain()
+	if err != nil {
+		errors.Wrap(err, "NewBlockchain failed")
+	}
+
+	UTXOSet := goBlockchain.UTXOSet{bc}
 	defer bc.Dispose()
 
-	if err != nil {
-		return errors.Wrap(err, "Creating new blockchain failed.")
-	}
+	tx := goBlockchain.NewUTXOTransaction(from, to, amount, &UTXOSet)
+	cbTx := goBlockchain.NewCoinbaseTX(from, "")
+	txs := []*goBlockchain.Transaction{cbTx, tx}
 
-	tx, err := goBlockchain.NewTransaction(from, to, amount, bc)
-	if err != nil {
-		return errors.Wrap(err, "creating new traction failed.")
-	}
-	if tx == nil {
-		panic("tx is nil")
-	}
-
-	bc.MineBlock([]*goBlockchain.Transaction{tx})
+	newBlock := bc.MineBlock(txs)
+	UTXOSet.Update(newBlock)
 	fmt.Println("Success!")
-	return
+
+	return nil
 }
 func (cli *CLI) createWallet() {
 	wallets, _ := goBlockchain.NewWallets()

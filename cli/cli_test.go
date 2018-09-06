@@ -5,8 +5,8 @@ import (
 )
 
 func TestSendTRansaction(t *testing.T){
-	from := "account1"
-	to := "account2"
+	from := "139XVkAeSQH43FQ351iox9dUdDEaYHirnV"
+	to := "1BH1ttG4kMR648ymyTevBUFHYf89AoPuPh"
 
 	cli := CLI{}
 	cli.Send(from, to, 5)
