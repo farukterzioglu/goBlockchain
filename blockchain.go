@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
 	"log"
@@ -19,39 +20,75 @@ type Blockchain struct{
 	db  *bolt.DB
 }
 
-func NewBlockchain(address string) (*Blockchain, error) {
+// CreateBlockchain creates a new blockchain DB
+func CreateBlockchain(address string) (*Blockchain ,error) {
+	if DbExists() {
+		fmt.Println("Blockchain already exists.")
+		os.Exit(1)
+	}
+
 	var tip []byte
 
-	//Open db
+	cbtx := NewCoinbaseTX(address, genesisCoinbaseData)
+	genesis := NewGenesisBlock(cbtx)
+
 	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
-		return nil, err
+		log.Panic(err)
+		return  nil, errors.Wrap(err, "bolt.Open failed")
+	}
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucket([]byte(blocksBucket))
+		if err != nil {
+			log.Panic(err)
+		}
+
+		err = b.Put(genesis.Hash, genesis.Serialize())
+		if err != nil {
+			log.Panic(err)
+		}
+
+		err = b.Put([]byte("l"), genesis.Hash)
+		if err != nil {
+			log.Panic(err)
+		}
+		tip = genesis.Hash
+
+		return nil
+	})
+	if err != nil {
+		log.Panic(err)
+		return  nil, errors.Wrap(err, "db.Update failed")
+	}
+
+	bc := Blockchain{tip, db}
+
+	return &bc, nil
+}
+// NewBlockchain creates a new Blockchain with genesis Block
+func NewBlockchain() (*Blockchain, error) {
+	if DbExists() == false {
+		fmt.Println("No existing blockchain found. Create one first.")
+		os.Exit(1)
+	}
+
+	var tip []byte
+	db, err := bolt.Open(dbFile, 0600, nil)
+	if err != nil {
+		log.Panic(err)
 	}
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
-
-		if b == nil {
-			cbtx := NewCoinbaseTX(address, genesisCoinbaseData)
-			genesis := NewGenesisBlock(cbtx)
-
-			b, err := tx.CreateBucket([]byte(blocksBucket))
-			res := genesis.Serialize()
-
-			err = b.Put(genesis.Hash, res)
-			err = b.Put([]byte("l"), genesis.Hash)
-
-			if err!= nil {
-				return err
-			}
-
-			tip = genesis.Hash
-		} else {
-			tip = b.Get([]byte("l"))
-		}
+		tip = b.Get([]byte("l"))
 
 		return nil
 	})
+	if err != nil {
+		log.Panic(err)
+		return nil, err
+	}
 
 	bc := Blockchain{tip, db}
 
@@ -175,7 +212,8 @@ func (bc *Blockchain) FindUTXO() map[string]TXOutputs {
 
 	return UTXO
 }
-func (bc *Blockchain) MineBlock(transactions []*Transaction) {
+// MineBlock mines a new block with the provided transactions
+func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 	var lastHash []byte
 
 	for _, tx := range transactions {
@@ -215,6 +253,8 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction) {
 	if err != nil {
 		log.Panic(err)
 	}
+
+	return newBlock
 }
 // SignTransaction signs inputs of a Transaction
 func (bc *Blockchain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
@@ -232,8 +272,8 @@ func (bc *Blockchain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey)
 }
 // VerifyTransaction verifies transaction input signatures
 func (bc *Blockchain) VerifyTransaction(tx *Transaction) bool {
-	if tx == nil {
-		panic("tx is null")
+	if tx.IsCoinbase() {
+		return true
 	}
 
 	prevTXs := make(map[string]Transaction)
@@ -254,7 +294,7 @@ func (bc *Blockchain) Dispose() {
 func (bc *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{bc.tip, bc.db}
 }
-func dbExists() bool {
+func DbExists() bool {
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		return false
 	}

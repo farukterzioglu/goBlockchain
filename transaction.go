@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	_ "encoding/hex"
 	"fmt"
-	"github.com/pkg/errors"
 	_ "github.com/pkg/errors"
 	"log"
 	"math/big"
@@ -153,7 +152,8 @@ func NewCoinbaseTX(to, data string) *Transaction {
 
 	return &tx
 }
-func NewTransaction(from, to string, amount int, bc *Blockchain) (*Transaction, error){
+// NewUTXOTransaction creates a new transaction
+func NewUTXOTransaction(from, to string, amount int, UTXOSet *UTXOSet) *Transaction {
 	var inputs []TXInput
 	var outputs []TXOutput
 
@@ -163,12 +163,7 @@ func NewTransaction(from, to string, amount int, bc *Blockchain) (*Transaction, 
 	}
 	wallet := wallets.GetWallet(from)
 	pubKeyHash := HashPubKey(wallet.PublicKey)
-	acc, validOutputs, err := bc.FindSpendableOutputs(pubKeyHash, amount)
-
-	if err != nil {
-		err = errors.Wrap(err, "FindSpendableOutputs failed")
-		return nil, err
-	}
+	acc, validOutputs := UTXOSet.FindSpendableOutputs(pubKeyHash, amount)
 
 	if acc < amount {
 		log.Panic("ERROR: Not enough funds")
@@ -195,7 +190,7 @@ func NewTransaction(from, to string, amount int, bc *Blockchain) (*Transaction, 
 
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
-	bc.SignTransaction(&tx, wallet.PrivateKey)
+	UTXOSet.Blockchain.SignTransaction(&tx, wallet.PrivateKey)
 
-	return &tx, nil
+	return &tx
 }

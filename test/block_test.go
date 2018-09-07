@@ -1,5 +1,5 @@
 package test
-
+/*
 import "testing"
 import (
 	"github.com/farukterzioglu/goBlockchain"
@@ -54,3 +54,4 @@ func TestSerializeDeserializeBlock(t *testing.T){
 		t.Errorf("Data values doesn't match")
 	}
 }
+*/
