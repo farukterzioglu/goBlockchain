@@ -1,12 +1,11 @@
 package goBlockchain
 
 import (
-	"log"
-	"time"
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"crypto/sha256"
+	"log"
+	"time"
 )
 
 type Block struct {
@@ -47,15 +46,13 @@ func (block *Block) Serialize() []byte {
 	return result.Bytes()
 }
 func (block *Block) HashTransactions() []byte{
-	var txHashes [][]byte
-	var txHash [32]byte
+	var transactions [][]byte
 
 	for _, tx := range block.Transactions {
-		txHashes = append(txHashes, tx.Hash())
+		transactions = append(transactions, tx.Serialize())
 	}
-	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
-
-	return txHash[:]
+	mTree := NewMerkleTree(transactions)
+	return mTree.RootNode.Data
 }
 
 
