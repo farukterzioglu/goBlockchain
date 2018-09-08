@@ -25,8 +25,7 @@ type Transaction struct {
 
 // IsCoinbase checks whether the transaction is coinbase
 func (tx Transaction) IsCoinbase() bool {
-	isCoinbase :=  len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
-	return isCoinbase
+	return len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
 }
 // Serialize returns a serialized Transaction
 func (tx Transaction) Serialize() []byte {
@@ -114,11 +113,6 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transaction) {
 	if tx.IsCoinbase() {
 		return
-	}
-
-	is := len(tx.Vin) == 1 && len(tx.Vin[0].Txid) == 0 && tx.Vin[0].Vout == -1
-	if is {
-		panic("test")
 	}
 
 	for _, vin := range tx.Vin {
