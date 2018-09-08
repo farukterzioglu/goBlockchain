@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestSigning(t *testing.T){
+func TestNewTransaction(t *testing.T){
 	wallets, _ := goBlockchain.NewWallets()
 	fromAddress := wallets.CreateWallet()
 	wallets.SaveToFile()
@@ -31,7 +31,7 @@ func TestSigning(t *testing.T){
 	prevTXs := make(map[string]goBlockchain.Transaction)
 	var inputs []goBlockchain.TXInput
 
-	//Check is outpur belongs to sender
+	//Check is output belongs to sender
 	if transaction1.Vout[0].IsLockedWithKey(pubKeyHash){
 		input1 := goBlockchain.TXInput{Txid: transaction1.ID, Vout: 0, PubKey: wallet.PublicKey}
 		inputs = append(inputs, input1)
