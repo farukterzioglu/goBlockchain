@@ -14,14 +14,16 @@ type Block struct {
 	PrevBlockHash []byte
 	Hash []byte
 	Nonce int
+	Height int
 }
 
-func NewBlock(transactions []*Transaction, prevBlockHash []byte) (block *Block) {
+func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int) (block *Block) {
 	block = &Block {
 		time.Now().Unix(),
 		transactions,
 		prevBlockHash, []byte{},
 		0,
+		height,
 	}
 
 	pow := NewProofOfWork(block)
@@ -55,7 +57,6 @@ func (block *Block) HashTransactions() []byte{
 	return mTree.RootNode.Data
 }
 
-
 func DeserializeBlock(d []byte) (block *Block, err error) {
 	decoder := gob.NewDecoder(bytes.NewReader(d))
 	err = decoder.Decode(&block)
@@ -66,5 +67,5 @@ func DeserializeBlock(d []byte) (block *Block, err error) {
 	return
 }
 func NewGenesisBlock(coinbase *Transaction) *Block{
-	return NewBlock([]*Transaction{coinbase}, []byte{})
+	return NewBlock([]*Transaction{coinbase}, []byte{}, 0)
 }

@@ -11,7 +11,10 @@ import (
 	"os"
 )
 
-const dbFile = "blockchain.db"
+//This is need because we will run multiple nodes from same folder
+//Remove after implementing nodes on different machines
+const dbFile = "blockchain_%s.db"
+
 const blocksBucket = "blocks"
 const genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
 
@@ -21,8 +24,8 @@ type Blockchain struct{
 }
 
 // CreateBlockchain creates a new blockchain DB
-func CreateBlockchain(address string) (*Blockchain ,error) {
-	if DbExists() {
+func CreateBlockchain(address string, nodeID string) (*Blockchain ,error) {
+	if DbExists(nodeID) {
 		fmt.Println("Blockchain already exists.")
 		os.Exit(1)
 	}
@@ -67,8 +70,8 @@ func CreateBlockchain(address string) (*Blockchain ,error) {
 	return &bc, nil
 }
 // NewBlockchain creates a new Blockchain with genesis Block
-func NewBlockchain() (*Blockchain, error) {
-	if DbExists() == false {
+func NewBlockchain(nodeID string) (*Blockchain, error) {
+	if DbExists(nodeID) == false {
 		fmt.Println("No existing blockchain found. Create one first.")
 		os.Exit(1)
 	}
@@ -294,7 +297,24 @@ func (bc *Blockchain) Dispose() {
 func (bc *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{bc.tip, bc.db}
 }
-func DbExists() bool {
+func (bc *Blockchain) GetBestHeight() int {
+	
+}
+
+func (bc *Blockchain) GetBlockHashes() []string {
+
+}
+func (bc *Blockchain) GetBlock(id []byte) (Block, error) {
+
+}
+func (bc *Blockchain) AddBlock(block Block) {
+
+}
+
+
+
+func DbExists(nodeID string) bool {
+	dbFile := fmt.Sprintf(dbFile, nodeID)
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		return false
 	}

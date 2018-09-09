@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
-const version = byte(0x00)
+//const version = byte(0x00)
 const walletFile = "wallet.dat"
 const addressChecksumLen = 4
 
@@ -24,15 +24,14 @@ func NewWallet() *Wallet {
 	wallet := Wallet{private, public}
 	return &wallet
 }
-func (w Wallet) GetAddress() []byte {
+/*func (w Wallet) GetAddress() []byte {
 	pubKeyHash := HashPubKey(w.PublicKey)
 	versionedPayload := append([]byte{version}, pubKeyHash...)
 	checksum := checksum(versionedPayload)
 	fullPayload := append(versionedPayload, checksum...)
 	address := Base58Encode(fullPayload)
 	return address
-}
-
+}*/
 func HashPubKey(pubKey []byte) []byte {
 	publicSHA256 := sha256.Sum256(pubKey)
 	RIPEMD160Hasher := ripemd160.New()
