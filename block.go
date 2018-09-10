@@ -57,9 +57,9 @@ func (block *Block) HashTransactions() []byte{
 	return mTree.RootNode.Data
 }
 
-func DeserializeBlock(d []byte) (block *Block, err error) {
+func DeserializeBlock(d []byte) (block *Block) {
 	decoder := gob.NewDecoder(bytes.NewReader(d))
-	err = decoder.Decode(&block)
+	err := decoder.Decode(&block)
 	if err != nil {
 		err = fmt.Errorf("'DeserializeBlock' failed: %v", err)
 		return

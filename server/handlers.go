@@ -10,6 +10,9 @@ import (
 	"net"
 )
 
+var blocksInTransit [][]byte
+var mempool = make(map[string]goBlockchain.Transaction)
+
 //Handlers
 func handleConnection(conn net.Conn, bc *goBlockchain.Blockchain){
 	request, err := ioutil.ReadAll(conn)
@@ -116,7 +119,7 @@ func handleGetData(request []byte, bc *goBlockchain.Blockchain) {
 		txID := hex.EncodeToString(payload.ID)
 		tx := mempool[txID]
 
-		sendTx(payload.AddrFrom, &tx)
+		SendTx(payload.AddrFrom, &tx)
 	}
 }
 
@@ -130,7 +133,7 @@ func handleBlock(request []byte, bc *goBlockchain.Blockchain) {
 	panicErr(err, "Couldn't decode payload")
 
 	blockData := payload.Block
-	block := DeserializeBlock(blockData)
+	block := goBlockchain.DeserializeBlock(blockData)
 
 	fmt.Println("Recevied a new block!")
 	//TODO : Verify block
@@ -149,9 +152,6 @@ func handleBlock(request []byte, bc *goBlockchain.Blockchain) {
 		UTXOSet.Reindex()
 	}
 }
-func DeserializeBlock(blockData []byte) goBlockchain.Block {
-
-}
 
 func handleTx(request []byte, bc *goBlockchain.Blockchain) {
 	var buff bytes.Buffer
@@ -163,13 +163,13 @@ func handleTx(request []byte, bc *goBlockchain.Blockchain) {
 	panicErr(err, "Couldn't decode payload")
 
 	txData := payload.Transaction
-	tx := DeserializeTransaction(txData)
+	tx := goBlockchain.DeserializeTransaction(txData)
 	//TODO : verify transactions
 	mempool[hex.EncodeToString(tx.ID)] = tx
 
 	//Central node doesn't do mining, forward to other nodes
-	if nodeAddress == knownNodes[0] {
-		for _, node := range knownNodes {
+	if nodeAddress == KnownNodes[0] {
+		for _, node := range KnownNodes {
 			if node != nodeAddress && node != payload.AddFrom {
 				sendInv(node, "tx", [][]byte{tx.ID})
 			}
@@ -207,7 +207,7 @@ func handleTx(request []byte, bc *goBlockchain.Blockchain) {
 				delete(mempool, txID)
 			}
 
-			for _, node := range knownNodes {
+			for _, node := range KnownNodes {
 				if node != nodeAddress {
 					sendInv(node, "block", [][]byte{newBlock.Hash})
 				}
@@ -218,7 +218,4 @@ func handleTx(request []byte, bc *goBlockchain.Blockchain) {
 			}
 		}
 	}
-}
-func DeserializeTransaction(txData []byte) goBlockchain.Transaction {
-
 }

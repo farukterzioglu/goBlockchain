@@ -1,5 +1,9 @@
 package server
 
+type addr struct {
+	AddrList []string
+}
+
 type version struct {
 	Version int
 	BestHeight int

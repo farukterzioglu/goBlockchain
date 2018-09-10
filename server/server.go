@@ -1,12 +1,8 @@
 package server
 
 import (
-	"bytes"
-	"encoding/gob"
-	"encoding/hex"
 	"fmt"
 	"github.com/farukterzioglu/goBlockchain"
-	"io/ioutil"
 	"log"
 	"net"
 )
@@ -16,7 +12,7 @@ const nodeVersion = 1
 const commandLength = 12
 
 var nodeAddress = "localhost:%s"
-var knownNodes = []string { "localhost:3000"}
+var KnownNodes = []string { "localhost:3000"}
 var miningAddress string
 
 func StartServer(nodeId string, minerAddress string){
@@ -30,8 +26,8 @@ func StartServer(nodeId string, minerAddress string){
 	bc, err := goBlockchain.NewBlockchain(nodeId)
 	panicErr(err,"NewBlockchain failed")
 
-	if nodeAddress != knownNodes[0] {
-		sendVersion(knownNodes[0], bc)
+	if nodeAddress != KnownNodes[0] {
+		sendVersion(KnownNodes[0], bc)
 	}
 
 	for {
