@@ -34,4 +34,5 @@ $RECYCLE.BIN/
 .vscode/
 
 *.db
+*.db.lock
 *.dat
