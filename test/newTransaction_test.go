@@ -7,13 +7,16 @@ import (
 )
 
 func TestSendTransaction(t *testing.T){
+	node := "3000"
 	//Create new wallet
-	wallets, _ := goBlockchain.NewWallets()
+	wallets, _ := goBlockchain.NewWallets(node)
 	fromAddress := wallets.CreateWallet()
-	wallets.SaveToFile()
+	wallets.SaveToFile(node)
+
+	wallet := wallets.GetWallet(fromAddress)
 
 	toAddress := wallets.CreateWallet()
-	wallets.SaveToFile()
+	wallets.SaveToFile(node)
 
 	//Validate address
 	if !goBlockchain.ValidateAddress(fromAddress) {
@@ -26,10 +29,10 @@ func TestSendTransaction(t *testing.T){
 	var bc *goBlockchain.Blockchain
 
 	//Create or get blockchain
-	if goBlockchain.DbExists() {
+	if goBlockchain.DbExists(node) {
 		panic("remove blockchain.db before running test")
 	} else {
-		bc, _ = goBlockchain.CreateBlockchain(fromAddress)
+		bc, _ = goBlockchain.CreateBlockchain(fromAddress, node)
 	}
 
 	//Create UTXO set & reindex it
@@ -38,14 +41,14 @@ func TestSendTransaction(t *testing.T){
 	bc.Dispose()
 
 	//Get created blockchain
-	bc, _ = goBlockchain.NewBlockchain()
+	bc, _ = goBlockchain.NewBlockchain(node)
 	defer bc.Dispose()
 
 	//Get UTXO set
 	UTXOSet = goBlockchain.UTXOSet{Blockchain: bc}
 
 	//New transaction & reward transaction
-	tx := goBlockchain.NewUTXOTransaction(fromAddress, toAddress, 6, &UTXOSet)
+	tx := goBlockchain.NewUTXOTransaction(&wallet, toAddress, 6, &UTXOSet)
 	cbTx := goBlockchain.NewCoinbaseTX(fromAddress, "")
 	txs := []*goBlockchain.Transaction{cbTx, tx}
 

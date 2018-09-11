@@ -7,14 +7,15 @@ import (
 )
 
 func TestNewTransaction(t *testing.T){
-	wallets, _ := goBlockchain.NewWallets()
+	nodeId := "3000"
+	wallets, _ := goBlockchain.NewWallets(nodeId)
 	fromAddress := wallets.CreateWallet()
-	wallets.SaveToFile()
+	wallets.SaveToFile(nodeId)
 	wallet := wallets.GetWallet(fromAddress)
 	pubKeyHash := goBlockchain.HashPubKey(wallet.PublicKey)
 
 	toAddress := wallets.CreateWallet()
-	wallets.SaveToFile()
+	wallets.SaveToFile(nodeId)
 
 	//Coinbase & reward transactions to sender
 	txin := goBlockchain.TXInput{Txid: []byte{}, Vout: -1, PubKey: []byte("Coinbase")}
