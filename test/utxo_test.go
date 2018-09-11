@@ -9,10 +9,12 @@ import (
 
 //Not an actual unit test. Testing transaction concepts
 func TestFindUTXO(t *testing.T) {
+	node := "3000"
+
 	//Create new transaction
-	wallets, _ := goBlockchain.NewWallets()
+	wallets, _ := goBlockchain.NewWallets(node)
 	fromAddress := wallets.CreateWallet()
-	wallets.SaveToFile()
+	wallets.SaveToFile(node)
 	fromWallet := wallets.GetWallet(fromAddress)
 
 	//Coinbase transaction
@@ -32,7 +34,7 @@ func TestFindUTXO(t *testing.T) {
 
 	////receiver
 	toAddress := wallets.CreateWallet()
-	wallets.SaveToFile()
+	wallets.SaveToFile(node)
 	var amount = 5
 
 	var unspentOutputs = make(map[string][]int)

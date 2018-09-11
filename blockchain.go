@@ -11,7 +11,9 @@ import (
 	"os"
 )
 
-const dbFile = "blockchain.db"
+//This is need because we will run multiple nodes from same folder
+//Remove after implementing nodes on different machines
+const dbFile = "blockchain_%s.db"
 const blocksBucket = "blocks"
 const genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
 
@@ -21,8 +23,9 @@ type Blockchain struct{
 }
 
 // CreateBlockchain creates a new blockchain DB
-func CreateBlockchain(address string) (*Blockchain ,error) {
-	if DbExists() {
+func CreateBlockchain(address string, nodeID string) (*Blockchain ,error) {
+	dbFile := fmt.Sprintf(dbFile, nodeID)
+	if DbExists(nodeID) {
 		fmt.Println("Blockchain already exists.")
 		os.Exit(1)
 	}
@@ -67,8 +70,10 @@ func CreateBlockchain(address string) (*Blockchain ,error) {
 	return &bc, nil
 }
 // NewBlockchain creates a new Blockchain with genesis Block
-func NewBlockchain() (*Blockchain, error) {
-	if DbExists() == false {
+func NewBlockchain(nodeID string) (*Blockchain, error) {
+	dbFile := fmt.Sprintf(dbFile, nodeID)
+
+	if DbExists(nodeID) == false {
 		fmt.Println("No existing blockchain found. Create one first.")
 		os.Exit(1)
 	}
@@ -215,8 +220,10 @@ func (bc *Blockchain) FindUTXO() map[string]TXOutputs {
 // MineBlock mines a new block with the provided transactions
 func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 	var lastHash []byte
+	var lastHeight int
 
 	for _, tx := range transactions {
+		// TODO: ignore transaction if it's not valid
 		if bc.VerifyTransaction(tx) != true {
 			log.Panic("ERROR: Invalid transaction")
 		}
@@ -226,13 +233,17 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 		b := tx.Bucket([]byte(blocksBucket))
 		lastHash = b.Get([]byte("l"))
 
+		blockData := b.Get(lastHash)
+		block := DeserializeBlock(blockData)
+		lastHeight = block.Height
+
 		return nil
 	})
 	if err != nil {
 		log.Panic(err)
 	}
 
-	newBlock := NewBlock(transactions, lastHash)
+	newBlock := NewBlock(transactions, lastHash, lastHeight+1)
 
 	err = bc.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
@@ -294,7 +305,80 @@ func (bc *Blockchain) Dispose() {
 func (bc *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{bc.tip, bc.db}
 }
-func DbExists() bool {
+func (bc *Blockchain) GetBestHeight() int {
+	var lastBlock Block
+	err := bc.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		lastHash := b.Get([]byte("l"))
+		blockData := b.Get(lastHash)
+		lastBlock = *DeserializeBlock(blockData)
+		return nil
+	})
+	if err != nil {
+		log.Panic(err)
+	}
+	return lastBlock.Height
+}
+func (bc *Blockchain) GetBlockHashes() [][]byte {
+	var blocks [][]byte
+	bci := bc.Iterator()
+	for {
+		block := bci.Next()
+		blocks = append(blocks, block.Hash)
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+	return blocks
+}
+func (bc *Blockchain) GetBlock(blockHash []byte) (Block, error) {
+	var block Block
+	err := bc.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		blockData := b.Get(blockHash)
+		if blockData == nil {
+			return errors.New("Block is not found.")
+		}
+		block = *DeserializeBlock(blockData)
+		return nil
+	})
+	if err != nil {
+		return block, err
+	}
+	return block, nil
+}
+func (bc *Blockchain) AddBlock(block *Block) {
+	err := bc.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+		blockInDb := b.Get(block.Hash)
+		if blockInDb != nil {
+			return nil
+		}
+		blockData := block.Serialize()
+		err := b.Put(block.Hash, blockData)
+		if err != nil {
+			log.Panic(err)
+		}
+		lastHash := b.Get([]byte("l"))
+		lastBlockData := b.Get(lastHash)
+		lastBlock := DeserializeBlock(lastBlockData)
+		if block.Height > lastBlock.Height {
+			err = b.Put([]byte("l"), block.Hash)
+			if err != nil {
+				log.Panic(err)
+			}
+			bc.tip = block.Hash
+		}
+		return nil
+	})
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+
+func DbExists(nodeID string) bool {
+	dbFile := fmt.Sprintf(dbFile, nodeID)
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		return false
 	}
@@ -315,10 +399,7 @@ func (i *BlockchainIterator) Next() *Block {
 		if encodedBlock == nil {
 			return nil
 		}
-		blockDes, errAlt := DeserializeBlock(encodedBlock)
-		if errAlt != nil {
-			return errAlt
-		}
+		blockDes := DeserializeBlock(encodedBlock)
 		block = blockDes
 		return nil
 	})
