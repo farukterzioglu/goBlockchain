@@ -1,6 +1,11 @@
 package server
 
+type command struct {
+	AddrFrom string
+}
+
 type addr struct {
+	AddrFrom string
 	AddrList []string
 }
 
@@ -32,7 +37,7 @@ type block struct {
 }
 
 type tx struct {
-	AddFrom     string
+	AddrFrom    string
 	Transaction []byte
 }
 
