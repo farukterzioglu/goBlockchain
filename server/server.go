@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"github.com/farukterzioglu/goBlockchain"
-	"log"
 	"net"
 )
 
@@ -11,17 +10,18 @@ const protocol = "tcp"
 const nodeVersion = 1
 const commandLength = 12
 
-var nodeAddress = "localhost:%s"
+var nodeAddress string
 var KnownNodes = []string { "localhost:3000"}
 var miningAddress string
 
-func StartServer(nodeId string, minerAddress string){
-	nodeAddress = fmt.Sprintf(nodeAddress, nodeId)
+// StartServer starts a node
+func StartServer(nodeId, minerAddress string) {
+	nodeAddress = fmt.Sprintf("localhost:%s", nodeId)
 	miningAddress = minerAddress
 
 	ln, err := net.Listen(protocol, nodeAddress)
-	defer ln.Close()
 	panicErr(err, "Couldn't start server " + nodeId)
+	defer ln.Close()
 
 	bc, err := goBlockchain.NewBlockchain(nodeId)
 	panicErr(err,"NewBlockchain failed")
@@ -31,8 +31,10 @@ func StartServer(nodeId string, minerAddress string){
 	}
 
 	for {
-		conn , err := ln.Accept()
-		log.Printf(err.Error())
+		conn, err := ln.Accept()
+		if err != nil {
+			panicErr(err,"ln.Accept failed")
+		}
 		go handleConnection(conn, bc)
 	}
 }

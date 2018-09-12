@@ -26,5 +26,7 @@ func ReverseBytes(data []byte) {
 }
 
 func PanicErr(err error, messageToWrap string){
-	panic(errors.Wrap(err, messageToWrap))
+	if err != nil {
+		panic(errors.Wrap(err, messageToWrap))
+	}
 }

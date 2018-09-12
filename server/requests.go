@@ -13,7 +13,7 @@ import (
 //Requests
 
 func sendAddr(address string) {
-	nodes := addr{KnownNodes}
+	nodes := addr{ AddrFrom: address, AddrList: KnownNodes }
 	nodes.AddrList = append(nodes.AddrList, nodeAddress)
 	payload := gobEncode(nodes)
 	request := append(commandToBytes("addr"), payload...)
